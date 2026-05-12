@@ -1,0 +1,15 @@
+{
+  "name": "private-chat",
+  "version": "1.0.0",
+  "description": "Private 1-on-1 chat application",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "express": "^4.18.2",
+    "mongoose": "^8.4.0",
+    "socket.io": "^4.7.2"
+  }
+}

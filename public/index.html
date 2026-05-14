@@ -251,12 +251,19 @@ body {
 
 /* ── Mobile layout ───────────────────────────────────────── */
 @media (max-width: 768px) {
+  /* Use dvh (dynamic viewport height) so mobile browser chrome is excluded */
+  body { height: 100dvh; }
+
   /* Sliding panel setup */
-  #chat-screen { position: relative; overflow: hidden; }
+  #chat-screen {
+    position: relative;
+    overflow: hidden;
+    height: 100dvh;
+  }
 
   #sidebar {
     width: 100vw;
-    height: 100vh;
+    height: 100dvh;
     flex-shrink: 0;
     transition: transform 0.28s ease;
     z-index: 2;
@@ -264,12 +271,37 @@ body {
 
   #main {
     width: 100vw;
-    height: 100vh;
+    height: 100dvh;
     position: absolute;
     top: 0; left: 0;
     transform: translateX(100%);
     transition: transform 0.28s ease;
     z-index: 3;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #active-chat {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  #chat-header {
+    flex-shrink: 0;
+    min-height: 58px;
+  }
+
+  #messages {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  #msg-form {
+    flex-shrink: 0;
   }
 
   /* When a chat is open, slide main in and sidebar out */

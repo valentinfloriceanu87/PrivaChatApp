@@ -133,6 +133,7 @@ body {
   display: none;
   flex-direction: row;
   height: 100vh;
+  overflow: hidden;
 }
 
 /* Sidebar */
@@ -258,6 +259,8 @@ body {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 #empty-state {
@@ -276,6 +279,8 @@ body {
   flex: 1;
   display: none;
   flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
 #chat-header {
@@ -293,6 +298,7 @@ body {
 #messages {
   flex: 1;
   overflow-y: auto;
+  min-height: 0;
   padding: 18px 20px;
   display: flex;
   flex-direction: column;

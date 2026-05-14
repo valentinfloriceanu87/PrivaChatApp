@@ -143,6 +143,8 @@ body {
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .sb-header {
@@ -216,9 +218,11 @@ body {
   padding: 0 2px;
 }
 
-#convo-list { flex: 1; overflow-y: auto; }
-#convo-list::-webkit-scrollbar { width: 3px; }
-#convo-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+#convo-list { flex: 1; overflow-y: auto; min-height: 0; }
+#convo-list::-webkit-scrollbar { width: 6px; }
+#convo-list::-webkit-scrollbar-track { background: var(--surface); }
+#convo-list::-webkit-scrollbar-thumb { background: var(--muted); border-radius: 3px; }
+#convo-list::-webkit-scrollbar-thumb:hover { background: var(--accent); }
 
 .convo-item {
   display: flex;
@@ -294,8 +298,10 @@ body {
   flex-direction: column;
   gap: 6px;
 }
-#messages::-webkit-scrollbar { width: 3px; }
-#messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+#messages::-webkit-scrollbar { width: 6px; }
+#messages::-webkit-scrollbar-track { background: transparent; }
+#messages::-webkit-scrollbar-thumb { background: var(--muted); border-radius: 3px; }
+#messages::-webkit-scrollbar-thumb:hover { background: var(--accent); }
 
 .msg {
   max-width: 68%;

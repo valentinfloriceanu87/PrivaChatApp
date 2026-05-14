@@ -85,6 +85,85 @@ body {
 .auth-msg.err { color: var(--danger); }
 .auth-msg.ok  { color: var(--ok); }
 
+/* ── Info button ─────────────────────────────────────────── */
+.info-btn {
+  position: absolute;
+  top: 14px; right: 14px;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: none;
+  color: var(--muted);
+  font-size: 14px; font-weight: 700;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: color .2s, border-color .2s;
+}
+.info-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+/* ── Info modal ──────────────────────────────────────────── */
+#info-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+#info-overlay.open { display: flex; }
+
+#info-modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px 26px;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+  position: relative;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+#info-modal::-webkit-scrollbar { width: 4px; }
+#info-modal::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.info-modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 20px;
+}
+.info-modal-header h2 {
+  font-size: 17px; font-weight: 800;
+  background: linear-gradient(135deg, #a89dff, #7c6cf5);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.info-close {
+  background: none; border: none; color: var(--muted);
+  font-size: 20px; cursor: pointer; line-height: 1;
+  transition: color .2s;
+}
+.info-close:hover { color: var(--danger); }
+
+.info-section { margin-bottom: 20px; }
+.info-section:last-child { margin-bottom: 0; }
+.info-section h3 {
+  font-size: 12px; font-weight: 700; color: var(--accent);
+  text-transform: uppercase; letter-spacing: .8px; margin-bottom: 10px;
+}
+.info-section ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.info-section ul li {
+  font-size: 13px; color: var(--text); line-height: 1.5;
+  padding-left: 18px; position: relative;
+}
+.info-section ul li::before {
+  content: '›'; position: absolute; left: 0;
+  color: var(--accent); font-weight: 700;
+}
+.info-divider {
+  border: none; border-top: 1px solid var(--border); margin: 18px 0;
+}
+
 /* ── Chat layout ─────────────────────────────────────────── */
 #chat-screen {
   display: none; flex-direction: row;
@@ -357,7 +436,8 @@ body {
 
 <!-- ── Auth screen ──────────────────────────────────────── -->
 <div id="auth-screen">
-  <div class="auth-card">
+  <div class="auth-card" style="position:relative;">
+    <button class="info-btn" onclick="toggleInfo()" title="About PrivaChatApp">i</button>
     <div class="brand">
       <h1>PrivaChatApp</h1>
       <p>Private 1-on-1 conversations</p>
@@ -437,6 +517,43 @@ body {
   </div>
 </div>
 
+<!-- ── Info modal ────────────────────────────────────────── -->
+<div id="info-overlay" onclick="closeInfoOutside(event)">
+  <div id="info-modal">
+    <div class="info-modal-header">
+      <h2>About PrivaChatApp</h2>
+      <button class="info-close" onclick="toggleInfo()">✕</button>
+    </div>
+
+    <div class="info-section">
+      <h3>How to use</h3>
+      <ul>
+        <li>Create a free account by clicking <strong>Register</strong> and choosing a username and password of <strong>at least 6 characters</strong>.</li>
+        <li>Sign in with your credentials on the <strong>Sign In</strong> tab.</li>
+        <li>To start a conversation, type the <strong>exact username</strong> of the person you want to chat with in the search bar and press Enter.</li>
+        <li>Both users must have an account — share your username with people you want to chat with.</li>
+        <li>Messages are delivered <strong>instantly</strong> in real time.</li>
+        <li>To <strong>delete a message</strong> you sent, tap the 🗑 trash icon next to it — it disappears for both users immediately.</li>
+        <li><strong>Keep your password safe!</strong> Losing your password means permanently losing access to your account. PrivaChatApp does not use or ask for an email address, so there is no way to reset your password.</li>
+      </ul>
+    </div>
+
+    <hr class="info-divider">
+
+    <div class="info-section">
+      <h3>Privacy</h3>
+      <ul>
+        <li>All conversations are <strong>strictly private</strong> — only you and the other person can read your messages.</li>
+        <li>No one else, including the app administrator, can access your conversations.</li>
+        <li><strong>Unread messages</strong> are never automatically deleted — they wait until the recipient reads them.</li>
+        <li><strong>Read messages</strong> are automatically and permanently deleted after <strong>10 days</strong>.</li>
+        <li>Your password is <strong>securely encrypted</strong> and never stored in plain text.</li>
+        <li>No personal data is collected or shared with third parties.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
 <script src="/socket.io/socket.io.js"></script>
 <script>
 // ── State ────────────────────────────────────────────────────────────────────
@@ -446,6 +563,14 @@ let currentPeer = null;
 
 // sidebar[username] = { lastMessage, unreadCount }
 const sidebar = {};
+
+// ── Info modal ────────────────────────────────────────────────────────────────
+function toggleInfo() {
+  document.getElementById('info-overlay').classList.toggle('open');
+}
+function closeInfoOutside(e) {
+  if (e.target === document.getElementById('info-overlay')) toggleInfo();
+}
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 function switchTab(tab) {

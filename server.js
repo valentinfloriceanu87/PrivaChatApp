@@ -44,16 +44,21 @@ async function cleanupOldMessages() {
   const tenDaysAgo = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000);
   try {
     const result = await Message.deleteMany({
-      read: true,
+      // Delete messages that are older than 10 days AND either:
+      // - explicitly marked as read (new messages with read tracking)
+      // - OR missing the read field entirely (old messages before read tracking was added)
       timestamp: { $lt: tenDaysAgo },
+      $or: [{ read: true }, { read: { $exists: false } }],
     });
     if (result.deletedCount > 0)
-      console.log(`Cleanup: removed ${result.deletedCount} old read messages`);
+      console.log(`Cleanup: removed ${result.deletedCount} old messages`);
   } catch (err) {
     console.error('Cleanup error:', err);
   }
 }
-setInterval(cleanupOldMessages, 60 * 60 * 1000); // every hour
+// Run on startup and every hour
+// Note: on Render free tier the server restarts frequently so startup covers most cases
+setInterval(cleanupOldMessages, 60 * 60 * 1000);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function conversationKey(a, b) { return [a, b].sort().join('::'); }
@@ -167,7 +172,7 @@ io.on('connection', (socket) => {
     try {
       const key = conversationKey(me, target);
       const result = await Message.updateMany(
-        { conversationKey: key, to: me, read: false },
+        { conversationKey: key, to: me, read: { $ne: true } },
         { read: true, readAt: new Date() }
       );
       if (result.modifiedCount > 0) {

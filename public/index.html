@@ -328,6 +328,83 @@ body {
 }
 .back-btn:hover { background: var(--surface2); }
 
+/* ── Invite banner ───────────────────────────────────────── */
+.invite-banner {
+  display: none;
+  background: linear-gradient(135deg, #2d2060, #1e1545);
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 18px;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.45;
+  text-align: center;
+}
+.invite-banner.show { display: block; }
+.invite-banner strong { color: var(--accent); }
+
+/* ── QR modal ────────────────────────────────────────────── */
+#qr-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+#qr-overlay.open { display: flex; }
+
+#qr-modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 28px 26px;
+  max-width: 320px;
+  width: 100%;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.7);
+  text-align: center;
+}
+.qr-modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 18px;
+}
+.qr-modal-header h2 {
+  font-size: 17px; font-weight: 800;
+  background: linear-gradient(135deg, #a89dff, #7c6cf5);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.qr-close {
+  background: none; border: none; color: var(--muted);
+  font-size: 20px; cursor: pointer; line-height: 1;
+  transition: color .2s;
+}
+.qr-close:hover { color: var(--danger); }
+#qr-image {
+  border-radius: 12px;
+  border: 3px solid var(--border);
+  display: block;
+  margin: 0 auto 14px;
+}
+.qr-label {
+  font-size: 12px; color: var(--muted); line-height: 1.5;
+  margin-top: 4px;
+}
+.qr-username {
+  font-size: 15px; font-weight: 700; color: var(--accent);
+  margin-bottom: 14px;
+}
+
+/* ── QR button in sidebar ────────────────────────────────── */
+.btn-qr {
+  flex-shrink: 0; background: none; border: 1px solid var(--border);
+  color: var(--muted); border-radius: 6px; padding: 4px 8px; font-size: 16px;
+  cursor: pointer; transition: color .2s, border-color .2s; line-height: 1;
+}
+.btn-qr:hover { color: var(--accent); border-color: var(--accent); }
+
 /* ── Mobile layout ───────────────────────────────────────── */
 @media (max-width: 768px) {
   /* Use dvh (dynamic viewport height) so mobile browser chrome is excluded */
@@ -442,6 +519,7 @@ body {
       <h1>PrivaChatApp</h1>
       <p>Private 1-on-1 conversations</p>
     </div>
+    <div class="invite-banner" id="invite-banner"></div>
     <div class="tabs">
       <div class="tab active" id="tab-login"    onclick="switchTab('login')">Sign In</div>
       <div class="tab"        id="tab-register" onclick="switchTab('register')">Register</div>
@@ -473,6 +551,18 @@ body {
         <div class="avatar" id="my-avatar"></div>
         <span class="me-name" id="my-name"></span>
       </div>
+      <button class="btn-qr" onclick="toggleQR()" title="My invitation QR code">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <rect x="2" y="2" width="8" height="8" rx="1"/><rect x="14" y="2" width="8" height="8" rx="1"/><rect x="2" y="14" width="8" height="8" rx="1"/>
+          <rect x="4" y="4" width="4" height="4" rx=".5" fill="var(--surface)"/>
+          <rect x="16" y="4" width="4" height="4" rx=".5" fill="var(--surface)"/>
+          <rect x="4" y="16" width="4" height="4" rx=".5" fill="var(--surface)"/>
+          <rect x="14" y="14" width="3" height="3" rx=".5"/>
+          <rect x="19" y="14" width="3" height="3" rx=".5"/>
+          <rect x="14" y="19" width="3" height="3" rx=".5"/>
+          <rect x="19" y="19" width="3" height="3" rx=".5"/>
+        </svg>
+      </button>
       <button class="btn-logout" onclick="doLogout()">Logout</button>
     </div>
     <div class="sb-search">
@@ -554,12 +644,26 @@ body {
   </div>
 </div>
 
+<!-- ── QR code modal ──────────────────────────────────────── -->
+<div id="qr-overlay" onclick="closeQROutside(event)">
+  <div id="qr-modal">
+    <div class="qr-modal-header">
+      <h2>Invite via QR</h2>
+      <button class="qr-close" onclick="toggleQR()">✕</button>
+    </div>
+    <div class="qr-username" id="qr-username-label"></div>
+    <img id="qr-image" width="200" height="200" alt="QR code">
+    <p class="qr-label">Ask someone to scan this QR code.<br>They'll be taken straight to PrivaChatApp<br>with a personal invitation from you.</p>
+  </div>
+</div>
+
 <script src="/socket.io/socket.io.js"></script>
 <script>
 // ── State ────────────────────────────────────────────────────────────────────
 let socket      = null;
 let myUsername  = null;
 let currentPeer = null;
+let invitedBy   = null;   // set when ?invite=USERNAME is in the URL
 
 // sidebar[username] = { lastMessage, unreadCount }
 const sidebar = {};
@@ -570,6 +674,22 @@ function toggleInfo() {
 }
 function closeInfoOutside(e) {
   if (e.target === document.getElementById('info-overlay')) toggleInfo();
+}
+
+// ── QR code modal ─────────────────────────────────────────────────────────────
+function toggleQR() {
+  const overlay = document.getElementById('qr-overlay');
+  if (!overlay.classList.contains('open')) {
+    // Build the QR code URL for this user
+    const appUrl  = encodeURIComponent(location.origin + '/?invite=' + encodeURIComponent(myUsername));
+    const qrSrc   = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&color=7c6cf5&bgcolor=17172b&data=' + appUrl;
+    document.getElementById('qr-image').src              = qrSrc;
+    document.getElementById('qr-username-label').textContent = myUsername;
+  }
+  overlay.classList.toggle('open');
+}
+function closeQROutside(e) {
+  if (e.target === document.getElementById('qr-overlay')) toggleQR();
 }
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
@@ -633,7 +753,20 @@ function startChat(token, username) {
   document.getElementById('my-avatar').textContent = initial(username);
 
   socket = io({ auth: { token } });
-  socket.on('connect', () => loadSidebar());
+  socket.on('connect', () => {
+    loadSidebar();
+    // If the user arrived via an invitation QR code, auto-open chat with inviter
+    if (invitedBy && invitedBy !== username) {
+      const peer = invitedBy;
+      invitedBy  = null;
+      socket.emit('check_user', peer, (exists) => {
+        if (!exists) return;
+        if (!sidebar[peer]) sidebar[peer] = { lastMessage: null, unreadCount: 0 };
+        bumpSidebarItem(peer, null, 0);
+        openConvo(peer);
+      });
+    }
+  });
   socket.on('connect_error', () => doLogout());
 
   // Incoming message from another user
@@ -903,8 +1036,22 @@ function fmtTime(iso) {
     : d.toLocaleDateString([], { month:'short', day:'numeric' }) + ' ' + t;
 }
 
-// ── Auto-login ────────────────────────────────────────────────────────────────
+// ── Auto-login & invite handling ──────────────────────────────────────────────
 (function () {
+  // Check for ?invite=USERNAME in the URL
+  const params = new URLSearchParams(location.search);
+  const inviter = params.get('invite');
+  if (inviter) {
+    invitedBy = inviter;
+    // Show the invitation banner and switch to Register tab
+    const banner = document.getElementById('invite-banner');
+    banner.innerHTML = '👋 You have been invited by <strong>' + inviter + '</strong> to a private chat.<br>Create a free account below to get started!';
+    banner.classList.add('show');
+    switchTab('register');
+    // Clean URL so refreshing doesn't re-trigger the invite flow
+    history.replaceState(null, '', location.pathname);
+  }
+
   const token    = localStorage.getItem('pc_token');
   const username = localStorage.getItem('pc_username');
   if (token && username) startChat(token, username);

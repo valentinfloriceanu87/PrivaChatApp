@@ -41,24 +41,25 @@ const sessions = new Map();
 // Delete messages that have been READ and are older than 10 days.
 // Unread messages are never auto-deleted.
 async function cleanupOldMessages() {
-  const tenDaysAgo = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000);
+  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+  const tenDaysAgo    = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000);
   try {
     const result = await Message.deleteMany({
-      // Delete messages that are older than 10 days AND either:
-      // - explicitly marked as read (new messages with read tracking)
-      // - OR missing the read field entirely (old messages before read tracking was added)
-      timestamp: { $lt: tenDaysAgo },
-      $or: [{ read: true }, { read: { $exists: false } }],
+      $or: [
+        // Read messages: delete 5 minutes after being read (based on readAt)
+        { read: true, readAt: { $lt: fiveMinutesAgo } },
+        // Old messages without read field (pre-tracking): delete after 10 days
+        { read: { $exists: false }, timestamp: { $lt: tenDaysAgo } },
+      ],
     });
     if (result.deletedCount > 0)
-      console.log(`Cleanup: removed ${result.deletedCount} old messages`);
+      console.log(`Cleanup: removed ${result.deletedCount} messages`);
   } catch (err) {
     console.error('Cleanup error:', err);
   }
 }
-// Run on startup and every hour
-// Note: on Render free tier the server restarts frequently so startup covers most cases
-setInterval(cleanupOldMessages, 60 * 60 * 1000);
+// Run every minute to catch the 5-minute read window
+setInterval(cleanupOldMessages, 60 * 1000);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function conversationKey(a, b) { return [a, b].sort().join('::'); }
